@@ -1,0 +1,9 @@
+# Environment variables
+.env
+
+# Configuration files with real API keys
+config.js
+
+# OS files
+.DS_Store
+Thumbs.db

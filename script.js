@@ -1,4 +1,4 @@
-const API_KEY = "AIzaSyCnlQSRsnPv7hi6suLQWDKeRxP2ORw_ctk";
+const API_KEY = window.CONFIG?.API_KEY || "";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
 
 const addPhotoBtn = document.getElementById('addPhotoBtn');
