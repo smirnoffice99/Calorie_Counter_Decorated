@@ -1,5 +1,8 @@
-const API_KEY = window.CONFIG?.API_KEY || "";
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
+// Cloudflare Functions Proxy Endpoints
+const API_ENDPOINTS = {
+    ANALYZE: "/api/analyze",
+    RECALCULATE: "/api/recalculate"
+};
 
 const addPhotoBtn = document.getElementById('addPhotoBtn');
 const fileInput = document.getElementById('fileInput');
@@ -117,9 +120,8 @@ addItemBtn.addEventListener('click', () => {
     updateTotalCalories();
 });
 
-// Gemini API Image Analysis
+// Gemini API Image Analysis via Proxy
 async function analyzeImages(images) {
-    // Softened weight estimation instructions for balanced results
     const prompt = `Identify ALL food items in these images, including branded products.
     
     1. "foods" array: MUST include EVERY identified item (including those with brands).
@@ -146,7 +148,7 @@ async function analyzeImages(images) {
         ]
     }];
 
-    const response = await fetch(GEMINI_API_URL, {
+    const response = await fetch(API_ENDPOINTS.ANALYZE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -159,7 +161,7 @@ async function analyzeImages(images) {
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || 'API request failed');
+        throw new Error(errorData.error || 'Server error occurred during analysis');
     }
 
     const data = await response.json();
@@ -253,7 +255,7 @@ function displayBrandInfo(brands) {
     brandSection.classList.remove('hidden');
 }
 
-// Recalculate based on name change
+// Recalculate based on name change via Proxy
 async function recalculateFromName(newName, row) {
     if (!newName.trim()) return;
 
@@ -265,7 +267,7 @@ async function recalculateFromName(newName, row) {
             parts: [{ text: `Determine the average calories for 100g of the food "${newName}". Return ONLY the number (total calories per 100g).` }]
         }];
 
-        const response = await fetch(GEMINI_API_URL, {
+        const response = await fetch(API_ENDPOINTS.RECALCULATE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents })

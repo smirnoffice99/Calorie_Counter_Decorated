@@ -43,5 +43,6 @@
 ---
 
 ## ⚠️ 주의사항
-- **API Key 보안**: 현재 `script.js`에 포함된 Gemini API Key는 오픈된 상태입니다. 실제 서비스 운영 시에는 보안을 위해 백엔드를 구축하거나 API Key 사용 환경을 제한하시길 권장드립니다.
-- **Firebase 연동**: 만약 Firebase 로그인을 추가하신다면, Firebase 콘솔의 **'Authorized Domains'** 목록에 배포된 도메인(예: `*.netlify.app`)을 반드시 추가해야 로그인이 정상 작동합니다.
+- **보안 설정 (필수)**: 이 앱은 Cloudflare Functions를 백엔드 프록시로 사용합니다. 배포 후 반드시 Cloudflare 프로젝트 설정의 **Settings -> Variables -> Environment Variables** 메뉴에서 `GEMINI_API_KEY`라는 이름으로 실제 API 키를 **Secret**으로 등록해야 합니다.
+- **백엔드 프록시**: 모든 API 요청은 `/api/` 경로를 통해 백엔드에서 처리되므로 브라우저에 API 키가 노출되지 않아 안전합니다.
+- **Firebase 연동**: 만약 Firebase 로그인을 추가하신다면, Firebase 콘솔의 **'Authorized Domains'** 목록에 배포된 도메인(예: `*.pages.dev`)을 반드시 추가해야 로그인이 정상 작동합니다.
