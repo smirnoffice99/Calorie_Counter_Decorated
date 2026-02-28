@@ -7,3 +7,9 @@ config.js
 # OS files
 .DS_Store
 Thumbs.db
+
+# Build/Runtime files
+node_modules/
+.wrangler/
+dist/
+build/

@@ -1,0 +1,10 @@
+{
+  "name": "calorie-counter-decorated",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler pages dev . --compatibility-date=2024-04-01"
+  },
+  "devDependencies": {
+    "wrangler": "latest"
+  }
+}

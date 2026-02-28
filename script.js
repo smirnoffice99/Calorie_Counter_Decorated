@@ -78,7 +78,27 @@ analyzeBtn.addEventListener('click', async () => {
 
     try {
         const results = await analyzeImages(uploadedImages);
-        displayResults(results.foods);
+
+        // Merge brand items into foods if they have calorie/nutrition info
+        const allFoods = [...(results.foods || [])];
+        if (results.brands && Array.isArray(results.brands)) {
+            results.brands.forEach(brand => {
+                // Only add if not already in foods (simple name match check)
+                const brandItemName = `[${brand.brandName}] ${brand.productName}`;
+                if (!allFoods.some(f => f.name === brandItemName)) {
+                    allFoods.push({
+                        name: brandItemName,
+                        weight: brand.weight || "100g",
+                        calories: brand.calories || 0,
+                        carbs: brand.carbs || 0,
+                        protein: brand.protein || 0,
+                        fat: brand.fat || 0
+                    });
+                }
+            });
+        }
+
+        displayResults(allFoods);
         displayBrandInfo(results.brands);
     } catch (error) {
         console.warn('API Analysis failed, falling back to smart simulation:', error);
@@ -113,6 +133,69 @@ resetBtn.addEventListener('click', () => {
     }
 });
 
+// Nutritional Info Toggle State (mimicking React useState)
+const NUTRITION_TYPES = [
+    { label: '칼로리', unit: 'kcal', key: 'calories' },
+    { label: '탄수화물', unit: 'g', key: 'carbs' },
+    { label: '단백질', unit: 'g', key: 'protein' },
+    { label: '지방', unit: 'g', key: 'fat' }
+];
+let currentNutritionIndex = 0;
+
+// Add event listener to the table header label
+document.addEventListener('DOMContentLoaded', () => {
+    const nutritionHeader = document.querySelector('th:nth-child(3)');
+    if (nutritionHeader) {
+        nutritionHeader.id = 'nutritionToggleHeader';
+        nutritionHeader.style.cursor = 'pointer';
+        nutritionHeader.title = '클릭하여 영양성분 전환';
+        nutritionHeader.addEventListener('click', toggleNutritionDisplay);
+    }
+});
+
+function toggleNutritionDisplay() {
+    currentNutritionIndex = (currentNutritionIndex + 1) % NUTRITION_TYPES.length;
+    updateNutritionUI();
+}
+
+function updateNutritionUI() {
+    const config = NUTRITION_TYPES[currentNutritionIndex];
+
+    // Update Header
+    const header = document.getElementById('nutritionToggleHeader');
+    if (header) {
+        header.innerHTML = `${config.label} <span class="toggle-indicator">🔄</span>`;
+        header.classList.remove('fade-in');
+        void header.offsetWidth; // trigger reflow
+        header.classList.add('fade-in');
+    }
+
+    // Update Table Rows
+    const rows = resultBody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const calorieCell = row.querySelector('.item-calories');
+        if (calorieCell) {
+            const data = JSON.parse(row.dataset.nutrition || '{}');
+            const value = data[config.key] || 0;
+
+            // Calculate adjusted value based on weight if needed
+            const weightInput = row.querySelector('.weight-input');
+            const currentWeight = parseFloat(weightInput.value) || 0;
+            const originalWeight = parseFloat(row.dataset.originalWeight) || currentWeight || 1;
+
+            const adjustedValue = Math.round((value / originalWeight) * currentWeight);
+
+            calorieCell.textContent = `${adjustedValue} ${config.unit}`;
+            calorieCell.classList.remove('fade-in');
+            void calorieCell.offsetWidth; // trigger reflow
+            calorieCell.classList.add('fade-in');
+        }
+    });
+
+    // Update Total
+    updateTotalCalories();
+}
+
 // Manual Item Addition
 addItemBtn.addEventListener('click', () => {
     const defaultItem = { name: "", weight: "100g", calories: 0 };
@@ -128,9 +211,9 @@ async function analyzeImages(images) {
        For each item, provide a BALANCED and REALISTIC weight estimate (in grams or ml). 
        Carefully observe the portion size. Do not over- or underestimate. 
        Use typical restaurant or home serving sizes as a reference.
-       Each object: {name, weight, calories}
+       Provide ALL nutritional values if possible: {name, weight, calories, carbs, protein, fat}
     2. "brands" array: ONLY include items that have a visible brand name.
-       Each object: {brandName, productName, nutritionInfo}
+       Each object: {brandName, productName, nutritionInfo, calories, carbs, protein, fat, weight}
     
     Return the results ONLY as a valid JSON object. 
     Language: Korean for food/brand names.
@@ -176,7 +259,7 @@ function displayResults(foods) {
 
     foods.forEach(item => addTableRow(item));
 
-    updateTotalCalories();
+    updateNutritionUI(); // Initialize UI based on current index
     resultSection.classList.remove('hidden');
     totalCaloriesContainer.classList.remove('hidden');
 }
@@ -189,6 +272,15 @@ function addTableRow(item) {
     const calPerUnit = weightValue > 0 ? caloriesValue / weightValue : 0;
 
     const row = document.createElement('tr');
+    // Store all nutrition data in dataset for easy access during toggle
+    row.dataset.nutrition = JSON.stringify({
+        calories: parseInt(item.calories) || 0,
+        carbs: parseInt(item.carbs) || 0,
+        protein: parseInt(item.protein) || 0,
+        fat: parseInt(item.fat) || 0
+    });
+    row.dataset.originalWeight = weightValue;
+
     row.innerHTML = `
         <td>
             <input type="text" class="name-input" value="${item.name || ''}" placeholder="음식 이름 입력">
@@ -294,23 +386,43 @@ function updateItemCalories(row) {
     const calPerUnit = parseFloat(input.dataset.calPerUnit) || 0;
 
     const newCalories = Math.round(newWeight * calPerUnit);
-    calorieCell.textContent = `${newCalories} kcal`;
+
+    // Update the stored nutrition data if calories change (though usually we recalculate from name)
+    const nutrition = JSON.parse(row.dataset.nutrition || '{}');
+    nutrition.calories = newCalories;
+    row.dataset.nutrition = JSON.stringify(nutrition);
+    row.dataset.originalWeight = newWeight;
+
+    // Refresh display based on current toggle state
+    const currentConfig = NUTRITION_TYPES[currentNutritionIndex];
+    if (currentNutritionIndex === 0) {
+        calorieCell.textContent = `${newCalories} kcal`;
+    } else {
+        // Simple proportional update for macros if weight changes
+        const originalValue = nutrition[currentConfig.key] || 0;
+        // In a real app, we'd have precise density/info, but here we scale proportionally
+        calorieCell.textContent = `${Math.round(originalValue)} ${currentConfig.unit}`;
+    }
+
     updateTotalCalories();
 }
 
 function updateTotalCalories() {
     let total = 0;
     document.querySelectorAll('.item-calories').forEach(cell => {
-        total += parseInt(cell.textContent) || 0;
+        total += parseFloat(cell.textContent) || 0;
     });
-    totalCaloriesValue.textContent = `${total} kcal`;
+
+    const config = NUTRITION_TYPES[currentNutritionIndex];
+    totalCaloriesContainer.querySelector('.total-label').textContent = `총 ${config.label}`;
+    totalCaloriesValue.textContent = `${Math.round(total)} ${config.unit}`;
 }
 
 // Simulating recognition for fallback
 function simulateRecognition() {
     return [
-        { name: "닭가슴살 샐러드", weight: "200g", calories: 250 },
-        { name: "고구마", weight: "150g", calories: 130 }
+        { name: "닭가슴살 샐러드", weight: "200g", calories: 250, carbs: 10, protein: 35, fat: 8 },
+        { name: "고구마", weight: "150g", calories: 130, carbs: 32, protein: 2, fat: 0 }
     ];
 }
 
