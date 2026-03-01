@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Food & Calorie Scanner</title>
+    <title>AI Food & Macro Scanner</title>
     <link rel="stylesheet" href="style.css">
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,9 +17,10 @@
         <div class="blob blob-3"></div>
     </div>
     <div class="app-container">
-        <header>
-            <h1>AI Food & Calorie Scanner</h1>
-            <p class="subtitle">음식 사진을 찍어 칼로리를 즉시 확인하세요</p>
+        <header style="position: relative;">
+            <button id="langToggle" class="lang-toggle-btn">ENG</button>
+            <h1>AI Food & Macro Scanner</h1>
+            <p class="subtitle" data-i18n="subtitle">음식 사진을 찍어 영양소를 즉시 확인하세요</p>
         </header>
 
         <main>
@@ -30,8 +31,8 @@
                     <div class="gallery-item-add" id="addPhotoBtn">
                         <input type="file" id="fileInput" accept="image/*" hidden multiple>
                         <div class="add-icon">+</div>
-                        <span>사진 가져오기</span>
-                        <span class="hint">(카메라/갤러리)</span>
+                        <span data-i18n="importPhoto">사진 가져오기</span>
+                        <span class="hint" data-i18n="importHint">(카메라/갤러리)</span>
                     </div>
                 </div>
             </section>
@@ -39,24 +40,24 @@
             <!-- Action Section -->
             <section class="action-section">
                 <div class="action-buttons">
-                    <button id="analyzeBtn" class="primary-btn" disabled>분석 및 칼로리 계산하기</button>
-                    <button id="resetBtn" class="secondary-btn-outline" title="모두 초기화">새로고침</button>
+                    <button id="analyzeBtn" class="primary-btn" disabled data-i18n="analyzeBtn">분석 및 칼로리 계산하기</button>
+                    <button id="resetBtn" class="secondary-btn-outline" title="모두 초기화" data-i18n="resetBtn">새로고침</button>
                 </div>
                 <div id="loadingIndicator" class="loading-indicator hidden">
                     <div class="spinner"></div>
-                    <p>AI가 분석 중입니다...</p>
+                    <p data-i18n="analyzing">AI가 분석 중입니다...</p>
                 </div>
             </section>
 
             <!-- Results Section -->
             <section id="resultSection" class="result-section hidden">
                 <div class="card">
-                    <h2>검색 결과</h2>
+                    <h2 data-i18n="searchResults">검색 결과</h2>
                     <table class="results-table">
                         <thead>
                             <tr>
-                                <th>음식 이름</th>
-                                <th>추정 무게</th>
+                                <th data-i18n="foodName">음식 이름</th>
+                                <th data-i18n="estWeight">추정 무게</th>
                                 <th>칼로리</th>
                                 <th style="width: 40px"></th>
                             </tr>
@@ -66,14 +67,14 @@
                         </tbody>
                     </table>
                     <div class="table-actions">
-                        <button id="addItemBtn" class="secondary-btn">+ 직접 항목 추가</button>
+                        <button id="addItemBtn" class="secondary-btn" data-i18n="addItemBtn">+ 직접 항목 추가</button>
                     </div>
                 </div>
 
                 <!-- Brand Info Section -->
                 <div id="brandSection" class="brand-section hidden">
                     <div class="card brand-card">
-                        <h3>브랜드 영양 정보</h3>
+                        <h3 data-i18n="brandNutrition">브랜드 영양 정보</h3>
                         <div id="brandContent" class="brand-content">
                             <!-- Brand details will be injected here -->
                         </div>

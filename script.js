@@ -19,6 +19,7 @@ const brandContent = document.getElementById('brandContent');
 const resetBtn = document.getElementById('resetBtn');
 
 let uploadedImages = []; // Stores objects: { mimeType, data (base64) }
+let lastBrands = []; // Stores the last analyzed brands for bilingual toggling
 
 // Handle Photo Selection
 addPhotoBtn.addEventListener('click', () => fileInput.click());
@@ -42,7 +43,7 @@ fileInput.addEventListener('change', async (e) => {
         galleryItem.className = 'gallery-item';
         galleryItem.innerHTML = `
             <img src="${base64Data}" alt="Food Preview">
-            <button class="photo-delete-btn" title="사진 삭제">✕</button>
+            <button class="photo-delete-btn" title="${i18n[currentLang].deletePhoto}">✕</button>
         `;
         imageGallery.insertBefore(galleryItem, addPhotoBtn);
 
@@ -84,10 +85,13 @@ analyzeBtn.addEventListener('click', async () => {
         if (results.brands && Array.isArray(results.brands)) {
             results.brands.forEach(brand => {
                 // Only add if not already in foods (simple name match check)
-                const brandItemName = `[${brand.brandName}] ${brand.productName}`;
-                if (!allFoods.some(f => f.name === brandItemName)) {
+                const brandItemNameKo = `[${brand.brandNameKo || brand.brandName}] ${brand.productNameKo || brand.productName}`;
+                const brandItemNameEn = `[${brand.brandNameEn || brand.brandName}] ${brand.productNameEn || brand.productName}`;
+                if (!allFoods.some(f => f.nameKo === brandItemNameKo || f.name === brandItemNameKo)) {
                     allFoods.push({
-                        name: brandItemName,
+                        nameKo: brandItemNameKo,
+                        nameEn: brandItemNameEn,
+                        name: brandItemNameKo, // Fallback
                         weight: brand.weight || "100g",
                         calories: brand.calories || 0,
                         carbs: brand.carbs || 0,
@@ -99,7 +103,8 @@ analyzeBtn.addEventListener('click', async () => {
         }
 
         displayResults(allFoods);
-        displayBrandInfo(results.brands);
+        lastBrands = results.brands || [];
+        displayBrandInfo(lastBrands);
     } catch (error) {
         console.warn('API Analysis failed, falling back to smart simulation:', error);
 
@@ -108,7 +113,7 @@ analyzeBtn.addEventListener('click', async () => {
         setTimeout(() => {
             const fallbackResults = simulateRecognition();
             displayResults(fallbackResults);
-            alert('💡 안내: 현재 API 키 또는 네트워크 설정 문제로 인해 시뮬레이션(데모) 모드로 분석 결과를 표시합니다.');
+            alert(i18n[currentLang].alertSimulate);
         }, 1500);
     } finally {
         loadingIndicator.classList.add('hidden');
@@ -118,7 +123,7 @@ analyzeBtn.addEventListener('click', async () => {
 
 // Reset Logic
 resetBtn.addEventListener('click', () => {
-    if (confirm('모든 사진과 분석 결과를 초기화할까요?')) {
+    if (confirm(i18n[currentLang].confirmReset)) {
         uploadedImages = [];
         // Remove all images except the add button
         const items = imageGallery.querySelectorAll('.gallery-item');
@@ -130,8 +135,64 @@ resetBtn.addEventListener('click', () => {
         brandSection.classList.add('hidden');
         analyzeBtn.disabled = true;
         fileInput.value = '';
+        lastBrands = [];
     }
 });
+
+let currentLang = 'ko';
+
+const i18n = {
+    ko: {
+        subtitle: "음식 사진을 찍어 영양소를 즉시 확인하세요",
+        importPhoto: "사진 가져오기",
+        importHint: "(카메라/갤러리)",
+        analyzeBtn: "분석 및 칼로리 계산하기",
+        resetBtn: "새로고침",
+        analyzing: "AI가 분석 중입니다...",
+        searchResults: "검색 결과",
+        foodName: "음식 이름",
+        estWeight: "추정 무게",
+        addItemBtn: "+ 직접 항목 추가",
+        brandNutrition: "브랜드 영양 정보",
+        totalLabel: "총 ",
+        nutritionTypes: { calories: '칼로리', carbs: '탄수화물', protein: '단백질', fat: '지방' },
+        alertSimulate: "💡 안내: 현재 API 키 또는 네트워크 설정 문제로 인해 시뮬레이션(데모) 모드로 분석 결과를 표시합니다.",
+        confirmReset: "모든 사진과 분석 결과를 초기화할까요?",
+        namePlaceholder: "음식 이름 입력",
+        searchDetail: "🔍 상세 정보 검색",
+        infoNone: "정보 없음",
+        promptLang: "Korean",
+        deletePhoto: "사진 삭제",
+        deleteItem: "삭제",
+        toggleTooltip: "클릭하여 영양성분 전환",
+        resetAllTooltip: "모두 초기화"
+    },
+    en: {
+        subtitle: "Instantly check macros by taking a food photo",
+        importPhoto: "Import Photo",
+        importHint: "(Camera/Gallery)",
+        analyzeBtn: "Analyze & Calculate Macros",
+        resetBtn: "Reset",
+        analyzing: "AI is analyzing...",
+        searchResults: "Search Results",
+        foodName: "Food Name",
+        estWeight: "Est. Weight",
+        addItemBtn: "+ Add Item Manually",
+        brandNutrition: "Brand Nutrition Info",
+        totalLabel: "Total ",
+        nutritionTypes: { calories: 'Calories', carbs: 'Carbs', protein: 'Protein', fat: 'Fat' },
+        alertSimulate: "💡 Note: Displaying simulated results due to API or network issues.",
+        confirmReset: "Are you sure you want to reset all photos and results?",
+        namePlaceholder: "Enter food name",
+        searchDetail: "🔍 Search Details",
+        infoNone: "No info",
+        promptLang: "English",
+        deletePhoto: "Delete Photo",
+        deleteItem: "Delete",
+        toggleTooltip: "Click to toggle nutrition",
+        resetAllTooltip: "Reset All"
+    }
+};
 
 // Nutritional Info Toggle State (mimicking React useState)
 const NUTRITION_TYPES = [
@@ -142,6 +203,62 @@ const NUTRITION_TYPES = [
 ];
 let currentNutritionIndex = 0;
 
+function updateLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[currentLang][key]) {
+            el.textContent = i18n[currentLang][key];
+        }
+    });
+
+    NUTRITION_TYPES[0].label = i18n[currentLang].nutritionTypes.calories;
+    NUTRITION_TYPES[1].label = i18n[currentLang].nutritionTypes.carbs;
+    NUTRITION_TYPES[2].label = i18n[currentLang].nutritionTypes.protein;
+    NUTRITION_TYPES[3].label = i18n[currentLang].nutritionTypes.fat;
+
+    updateNutritionUI();
+
+    const resetBtnEl = document.getElementById('resetBtn');
+    if (resetBtnEl) resetBtnEl.title = i18n[currentLang].resetAllTooltip;
+
+    const nutritionHeader = document.getElementById('nutritionToggleHeader');
+    if (nutritionHeader) nutritionHeader.title = i18n[currentLang].toggleTooltip;
+
+    document.querySelectorAll('.name-input').forEach(input => {
+        input.placeholder = i18n[currentLang].namePlaceholder;
+    });
+
+    document.querySelectorAll('.search-link').forEach(link => {
+        link.textContent = i18n[currentLang].searchDetail;
+    });
+
+    document.querySelectorAll('.photo-delete-btn').forEach(btn => {
+        btn.title = i18n[currentLang].deletePhoto;
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.title = i18n[currentLang].deleteItem;
+    });
+
+    const langBtn = document.getElementById('langToggle');
+    if (langBtn) {
+        langBtn.textContent = currentLang === 'ko' ? 'ENG' : '한국어';
+    }
+
+    // Update dynamic food names in the table
+    document.querySelectorAll('#resultBody tr').forEach(row => {
+        const nameInput = row.querySelector('.name-input');
+        if (nameInput) {
+            nameInput.value = currentLang === 'ko' ? (row.dataset.nameKo || '') : (row.dataset.nameEn || '');
+        }
+    });
+
+    // Re-render brand info if available
+    if (typeof lastBrands !== 'undefined' && lastBrands.length > 0) {
+        displayBrandInfo(lastBrands);
+    }
+}
+
 // Add event listener to the table header label
 document.addEventListener('DOMContentLoaded', () => {
     const nutritionHeader = document.querySelector('th:nth-child(3)');
@@ -151,6 +268,21 @@ document.addEventListener('DOMContentLoaded', () => {
         nutritionHeader.title = '클릭하여 영양성분 전환';
         nutritionHeader.addEventListener('click', toggleNutritionDisplay);
     }
+
+    const langBtn = document.getElementById('langToggle');
+    if (langBtn) {
+        langBtn.addEventListener('click', () => {
+            // Save any active input before switching
+            if (document.activeElement && document.activeElement.classList.contains('name-input')) {
+                document.activeElement.blur();
+            }
+            currentLang = currentLang === 'ko' ? 'en' : 'ko';
+            updateLanguage();
+        });
+    }
+
+    // Initialize display with default language text
+    updateLanguage();
 });
 
 function toggleNutritionDisplay() {
@@ -198,7 +330,7 @@ function updateNutritionUI() {
 
 // Manual Item Addition
 addItemBtn.addEventListener('click', () => {
-    const defaultItem = { name: "", weight: "100g", calories: 0 };
+    const defaultItem = { nameKo: "", nameEn: "", weight: "100g", calories: 0 };
     addTableRow(defaultItem);
     updateTotalCalories();
 });
@@ -211,12 +343,11 @@ async function analyzeImages(images) {
        For each item, provide a BALANCED and REALISTIC weight estimate (in grams or ml). 
        Carefully observe the portion size. Do not over- or underestimate. 
        Use typical restaurant or home serving sizes as a reference.
-       Provide ALL nutritional values if possible: {name, weight, calories, carbs, protein, fat}
+       Provide ALL nutritional values and names in BOTH Korean and English: {nameKo, nameEn, weight, calories, carbs, protein, fat}
     2. "brands" array: ONLY include items that have a visible brand name.
-       Each object: {brandName, productName, nutritionInfo, calories, carbs, protein, fat, weight}
+       Each object: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}
     
-    Return the results ONLY as a valid JSON object. 
-    Language: Korean for food/brand names.
+    Return the results ONLY as a valid JSON object.
     `;
 
     const contents = [{
@@ -281,9 +412,15 @@ function addTableRow(item) {
     });
     row.dataset.originalWeight = weightValue;
 
+    // Store bilingual names
+    row.dataset.nameKo = item.nameKo || item.name || '';
+    row.dataset.nameEn = item.nameEn || item.name || '';
+
+    const initialName = currentLang === 'ko' ? row.dataset.nameKo : row.dataset.nameEn;
+
     row.innerHTML = `
         <td>
-            <input type="text" class="name-input" value="${item.name || ''}" placeholder="음식 이름 입력">
+            <input type="text" class="name-input" value="${initialName}" placeholder="${i18n[currentLang].namePlaceholder}">
         </td>
         <td>
             <div class="weight-input-container">
@@ -293,7 +430,7 @@ function addTableRow(item) {
         </td>
         <td class="item-calories">${caloriesValue} kcal</td>
         <td>
-            <button class="delete-btn" title="삭제">✕</button>
+            <button class="delete-btn" title="${i18n[currentLang].deleteItem}">✕</button>
         </td>
     `;
     resultBody.appendChild(row);
@@ -303,7 +440,11 @@ function addTableRow(item) {
     const deleteBtn = row.querySelector('.delete-btn');
 
     weightInput.addEventListener('input', () => updateItemCalories(row));
-    nameInput.addEventListener('change', () => recalculateFromName(nameInput.value, row));
+    nameInput.addEventListener('change', () => {
+        if (currentLang === 'ko') row.dataset.nameKo = nameInput.value;
+        else row.dataset.nameEn = nameInput.value;
+        recalculateFromName(nameInput.value, row);
+    });
     deleteBtn.addEventListener('click', () => {
         row.remove();
         updateTotalCalories();
@@ -321,23 +462,33 @@ function displayBrandInfo(brands) {
 
     brands.forEach(b => {
         let nutritionText = "";
-        if (typeof b.nutritionInfo === 'object' && b.nutritionInfo !== null) {
-            nutritionText = Object.entries(b.nutritionInfo)
+
+        const nutritionObj = currentLang === 'ko' ? (b.nutritionInfoKo || b.nutritionInfo) : (b.nutritionInfoEn || b.nutritionInfo);
+
+        if (typeof nutritionObj === 'object' && nutritionObj !== null) {
+            nutritionText = Object.entries(nutritionObj)
                 .map(([key, value]) => `${key}: ${value}`)
                 .join(', ');
         } else {
-            nutritionText = b.nutritionInfo || "정보 없음";
+            nutritionText = nutritionObj || i18n[currentLang].infoNone;
         }
 
-        const searchQuery = encodeURIComponent(`${b.brandName} ${b.productName} nutrition facts 영양성분`);
+        const bNameKo = b.brandNameKo || b.brandName || '';
+        const bNameEn = b.brandNameEn || b.brandName || '';
+        const pNameKo = b.productNameKo || b.productName || '';
+        const pNameEn = b.productNameEn || b.productName || '';
+        const currentBName = currentLang === 'ko' ? bNameKo : bNameEn;
+        const currentPName = currentLang === 'ko' ? pNameKo : pNameEn;
+
+        const searchQuery = encodeURIComponent(`${currentBName} ${currentPName} nutrition facts 영양성분`);
         const searchLink = `https://www.google.com/search?q=${searchQuery}`;
 
         const div = document.createElement('div');
         div.className = 'brand-item';
         div.innerHTML = `
             <div class="brand-header">
-                <span class="brand-name">[${b.brandName}] ${b.productName}</span>
-                <a href="${searchLink}" target="_blank" class="search-link">🔍 상세 정보 검색</a>
+                <span class="brand-name">[${currentBName}] ${currentPName}</span>
+                <a href="${searchLink}" target="_blank" class="search-link">${i18n[currentLang].searchDetail}</a>
             </div>
             <p class="brand-nutrition">${nutritionText}</p>
         `;
@@ -355,22 +506,45 @@ async function recalculateFromName(newName, row) {
     row.style.opacity = '0.5';
 
     try {
-        const contents = [{
-            parts: [{ text: `Determine the average calories for 100g of the food "${newName}". Return ONLY the number (total calories per 100g).` }]
-        }];
+        const prompt = `For the food item "${newName}", provide its common name in BOTH Korean and English, and its average calories per 100g.
+        Return ONLY a valid JSON object with exactly these keys:
+        {
+            "nameKo": "Korean name",
+            "nameEn": "English name",
+            "caloriesPer100g": <number>
+        }`;
+
+        const contents = [{ parts: [{ text: prompt }] }];
 
         const response = await fetch(API_ENDPOINTS.RECALCULATE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents })
+            body: JSON.stringify({
+                contents,
+                generationConfig: { response_mime_type: "application/json" }
+            })
         });
 
         if (response.ok) {
             const data = await response.json();
-            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "0";
-            const calsPer100g = parseFloat(textResult.replace(/[^0-9.]/g, '')) || 0;
-            weightInput.dataset.calPerUnit = calsPer100g / 100;
-            updateItemCalories(row);
+            const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            try {
+                const parsed = JSON.parse(textResult);
+
+                // Update bilingual names
+                if (parsed.nameKo) row.dataset.nameKo = parsed.nameKo;
+                if (parsed.nameEn) row.dataset.nameEn = parsed.nameEn;
+
+                // If the user's current language display does not match their input exactly, update it gracefully
+                const nameInput = row.querySelector('.name-input');
+                nameInput.value = currentLang === 'ko' ? row.dataset.nameKo : row.dataset.nameEn;
+
+                const calsPer100g = parseFloat(parsed.caloriesPer100g) || 0;
+                weightInput.dataset.calPerUnit = calsPer100g / 100;
+                updateItemCalories(row);
+            } catch (parseError) {
+                console.warn('Failed to parse re-estimation JSON', parseError);
+            }
         }
     } catch (e) {
         console.warn('Name-based re-estimation failed:', e);
@@ -414,15 +588,15 @@ function updateTotalCalories() {
     });
 
     const config = NUTRITION_TYPES[currentNutritionIndex];
-    totalCaloriesContainer.querySelector('.total-label').textContent = `총 ${config.label}`;
+    totalCaloriesContainer.querySelector('.total-label').textContent = `${i18n[currentLang].totalLabel}${config.label}`;
     totalCaloriesValue.textContent = `${Math.round(total)} ${config.unit}`;
 }
 
 // Simulating recognition for fallback
 function simulateRecognition() {
     return [
-        { name: "닭가슴살 샐러드", weight: "200g", calories: 250, carbs: 10, protein: 35, fat: 8 },
-        { name: "고구마", weight: "150g", calories: 130, carbs: 32, protein: 2, fat: 0 }
+        { nameKo: "닭가슴살 샐러드", nameEn: "Chicken Breast Salad", name: "닭가슴살 샐러드", weight: "200g", calories: 250, carbs: 10, protein: 35, fat: 8 },
+        { nameKo: "고구마", nameEn: "Sweet Potato", name: "고구마", weight: "150g", calories: 130, carbs: 32, protein: 2, fat: 0 }
     ];
 }
 
