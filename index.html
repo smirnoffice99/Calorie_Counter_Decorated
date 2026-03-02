@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -18,7 +20,19 @@
     </div>
     <div class="app-container">
         <header style="position: relative;">
-            <button id="langToggle" class="lang-toggle-btn">ENG</button>
+            <div class="header-top-actions">
+                <button id="langToggle" class="lang-toggle-btn">ENG</button>
+                <!-- Custom Login Wrapper matching User Profile -->
+                <div id="loginWrapper" class="user-profile custom-login-wrapper">
+                    <span class="logout-btn custom-login-text">구글 로그인</span>
+                    <div id="authContainer" class="auth-overlay"></div>
+                </div>
+                <!-- User Profile Container (Hidden by default) -->
+                <div id="userProfile" class="user-profile hidden">
+                    <img id="userAvatar" src="" alt="Profile" class="user-avatar" title="구글 계정 프로필">
+                    <button id="logoutBtn" class="logout-btn">로그아웃</button>
+                </div>
+            </div>
             <h1>AI Food & Macro Scanner</h1>
             <p class="subtitle" data-i18n="subtitle">음식 사진을 찍어 영양소를 즉시 확인하세요</p>
         </header>
@@ -41,7 +55,8 @@
             <section class="action-section">
                 <div class="action-buttons">
                     <button id="analyzeBtn" class="primary-btn" disabled data-i18n="analyzeBtn">분석 및 칼로리 계산하기</button>
-                    <button id="resetBtn" class="secondary-btn-outline" title="모두 초기화" data-i18n="resetBtn">새로고침</button>
+                    <button id="resetBtn" class="secondary-btn-outline" title="모두 초기화"
+                        data-i18n="resetBtn">새로고침</button>
                 </div>
                 <div id="loadingIndicator" class="loading-indicator hidden">
                     <div class="spinner"></div>

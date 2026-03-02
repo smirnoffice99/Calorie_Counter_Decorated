@@ -146,7 +146,7 @@ const i18n = {
         subtitle: "음식 사진을 찍어 영양소를 즉시 확인하세요",
         importPhoto: "사진 가져오기",
         importHint: "(카메라/갤러리)",
-        analyzeBtn: "분석 및 칼로리 계산하기",
+        analyzeBtn: "분석 및 영양소 계산하기",
         resetBtn: "새로고침",
         analyzing: "AI가 분석 중입니다...",
         searchResults: "검색 결과",
@@ -259,8 +259,21 @@ function updateLanguage() {
     }
 }
 
-// Add event listener to the table header label
-document.addEventListener('DOMContentLoaded', () => {
+// ===== 글로벌 인증 상태 관리 =====
+let isGoogleApiLoaded = false;
+let currentSession = null;
+
+// DOMContentLoaded 이벤트에 초기화 로직 추가
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. 세션 확인을 먼저 진행합니다.
+    const isAuthenticated = await checkSession();
+
+    // 2. 구글 인증 초기화 (세션이 없을 때 One Tap 표시 기능 포함)
+    await initGoogleAuth(isAuthenticated);
+
+    // 각종 버튼 이벤트 리스너 설정
+    // const analyzeBtn = document.getElementById('analyzeBtn'); // Already defined globally
+
     const nutritionHeader = document.querySelector('th:nth-child(3)');
     if (nutritionHeader) {
         nutritionHeader.id = 'nutritionToggleHeader';
@@ -283,7 +296,146 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize display with default language text
     updateLanguage();
+
+    // 로그아웃 버튼 이벤트 리스너
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
 });
+
+// ===== 구글 OAuth 인증 함수 =====
+async function initGoogleAuth(isAuthenticated) {
+    try {
+        const response = await fetch('/api/auth-config');
+        if (!response.ok) {
+            console.error("Auth config API returned error status:", response.status);
+            return;
+        }
+
+        const data = await response.json();
+        const clientId = data.clientId;
+
+        if (clientId && window.google) {
+            google.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleCredentialResponse,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+                use_fedcm_for_prompt: true // FedCM (One Tap 최신 규격)
+            });
+            // 명시적으로 상단 우측 버튼 크기와 테마 속성을 지정하여 표시 (직관적인 텍스트 포함)
+            google.accounts.id.renderButton(
+                document.getElementById("authContainer"),
+                { theme: "outline", size: "medium", type: "standard", shape: "pill", text: "signin_with" }
+            );
+
+            // 사용자가 로그인 상태가 아닐 때만 원탭 로그인 프롬프트 띄우기
+            if (!isAuthenticated) {
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        console.log('One Tap was not displayed or skipped:', notification.getNotDisplayedReason() || notification.getSkippedReason());
+                    }
+                });
+            }
+
+            isGoogleApiLoaded = true;
+        } else {
+            console.error("Google script not loaded or ClientID missing. Config:", data);
+        }
+    } catch (err) {
+        console.error("Failed to load auth config:", err);
+    }
+}
+
+// 구글 로그인 성공 콜백
+async function handleCredentialResponse(response) {
+    if (!response.credential) return;
+
+    try {
+        const authRes = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+
+        if (authRes.ok) {
+            const data = await authRes.json();
+            currentSession = data.user;
+            updateAuthUI(true);
+        } else {
+            console.error("Authentication failed.");
+            updateAuthUI(false);
+        }
+    } catch (err) {
+        console.error("Error during authentication:", err);
+        updateAuthUI(false);
+    }
+}
+
+// 세션 유지 확인 (비동기 결과를 반환하도록 수정)
+async function checkSession() {
+    try {
+        const res = await fetch('/api/session');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.authenticated) {
+                currentSession = data.user;
+                updateAuthUI(true);
+                return true;
+            } else {
+                updateAuthUI(false);
+                return false;
+            }
+        } else {
+            updateAuthUI(false);
+            return false;
+        }
+    } catch (error) {
+        console.error("Session check failed:", error);
+        updateAuthUI(false);
+        return false;
+    }
+}
+
+// 로그아웃 처리
+async function handleLogout() {
+    try {
+        const res = await fetch('/api/session', { method: 'DELETE' });
+        if (res.ok) {
+            currentSession = null;
+            updateAuthUI(false);
+        }
+    } catch (error) {
+        console.error("Logout failed:", error);
+    }
+}
+
+// UI 업데이트 로직
+function updateAuthUI(isLoggedIn) {
+    const loginWrapper = document.getElementById('loginWrapper');
+    const userProfile = document.getElementById('userProfile');
+    const userAvatar = document.getElementById('userAvatar');
+
+    if (isLoggedIn && currentSession) {
+        // 로그인 상태 UI
+        if (loginWrapper) loginWrapper.style.display = 'none';
+        if (userProfile) userProfile.classList.remove('hidden');
+        if (userAvatar && currentSession.picture) {
+            userAvatar.src = currentSession.picture;
+            userAvatar.style.display = 'block';
+            userAvatar.title = `${currentSession.name} (${currentSession.email})`; // Remove explicit text, use hover tooltip instead
+        } else if (userAvatar) {
+            userAvatar.style.display = 'none';
+        }
+    } else {
+        // 비회원 상태 UI
+        if (loginWrapper) loginWrapper.style.display = 'flex';
+        if (userProfile) userProfile.classList.add('hidden');
+        if (userAvatar) userAvatar.src = '';
+    }
+}
+// ===== // 글로벌 인증 상태 관리 끝 // =====
 
 function toggleNutritionDisplay() {
     currentNutritionIndex = (currentNutritionIndex + 1) % NUTRITION_TYPES.length;

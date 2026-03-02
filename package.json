@@ -4,6 +4,9 @@
   "scripts": {
     "dev": "wrangler pages dev . --compatibility-date=2024-04-01"
   },
+  "dependencies": {
+    "jose": "^5.10.0"
+  },
   "devDependencies": {
     "wrangler": "latest"
   }

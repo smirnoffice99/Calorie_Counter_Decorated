@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.dev.vars
 
 # Configuration files with real API keys
 config.js
