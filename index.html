@@ -68,19 +68,21 @@
             <section id="resultSection" class="result-section hidden">
                 <div class="card">
                     <h2 data-i18n="searchResults">검색 결과</h2>
-                    <table class="results-table">
-                        <thead>
-                            <tr>
-                                <th data-i18n="foodName">음식 이름</th>
-                                <th data-i18n="estWeight">추정 무게</th>
-                                <th>칼로리</th>
-                                <th style="width: 40px"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultBody">
-                            <!-- Results will be injected here -->
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="foodName">음식 이름</th>
+                                    <th data-i18n="estWeight">추정 무게</th>
+                                    <th>칼로리</th>
+                                    <th style="width: 40px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultBody">
+                                <!-- Results will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="table-actions">
                         <button id="addItemBtn" class="secondary-btn" data-i18n="addItemBtn">+ 직접 항목 추가</button>
                     </div>
