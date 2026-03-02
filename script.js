@@ -330,7 +330,7 @@ function updateNutritionUI() {
 
 // Manual Item Addition
 addItemBtn.addEventListener('click', () => {
-    const defaultItem = { nameKo: "", nameEn: "", weight: "100g", calories: 0 };
+    const defaultItem = { nameKo: "", nameEn: "", weight: "100g", calories: 0, carbs: 0, protein: 0, fat: 0 };
     addTableRow(defaultItem);
     updateTotalCalories();
 });
@@ -412,6 +412,12 @@ function addTableRow(item) {
     });
     row.dataset.originalWeight = weightValue;
 
+    // Store per-unit values in dataset for weight changes
+    row.dataset.calPerUnit = calPerUnit;
+    row.dataset.carbsPerUnit = (parseInt(item.carbs) || 0) / (weightValue || 1);
+    row.dataset.proteinPerUnit = (parseInt(item.protein) || 0) / (weightValue || 1);
+    row.dataset.fatPerUnit = (parseInt(item.fat) || 0) / (weightValue || 1);
+
     // Store bilingual names
     row.dataset.nameKo = item.nameKo || item.name || '';
     row.dataset.nameEn = item.nameEn || item.name || '';
@@ -424,7 +430,7 @@ function addTableRow(item) {
         </td>
         <td>
             <div class="weight-input-container">
-                <input type="number" class="weight-input" value="${weightValue}" data-cal-per-unit="${calPerUnit}">
+                <input type="number" class="weight-input" value="${weightValue}">
                 <span class="unit-text">${safeWeight.replace(/[0-9.]/g, '') || 'g'}</span>
             </div>
         </td>
@@ -506,12 +512,15 @@ async function recalculateFromName(newName, row) {
     row.style.opacity = '0.5';
 
     try {
-        const prompt = `For the food item "${newName}", provide its common name in BOTH Korean and English, and its average calories per 100g.
+        const prompt = `For the food item "${newName}", provide its common name in BOTH Korean and English, and its average nutritional info per 100g.
         Return ONLY a valid JSON object with exactly these keys:
         {
             "nameKo": "Korean name",
             "nameEn": "English name",
-            "caloriesPer100g": <number>
+            "caloriesPer100g": <number>,
+            "carbsPer100g": <number>,
+            "proteinPer100g": <number>,
+            "fatPer100g": <number>
         }`;
 
         const contents = [{ parts: [{ text: prompt }] }];
@@ -540,7 +549,15 @@ async function recalculateFromName(newName, row) {
                 nameInput.value = currentLang === 'ko' ? row.dataset.nameKo : row.dataset.nameEn;
 
                 const calsPer100g = parseFloat(parsed.caloriesPer100g) || 0;
-                weightInput.dataset.calPerUnit = calsPer100g / 100;
+                const carbsPer100g = parseFloat(parsed.carbsPer100g) || 0;
+                const proteinPer100g = parseFloat(parsed.proteinPer100g) || 0;
+                const fatPer100g = parseFloat(parsed.fatPer100g) || 0;
+
+                row.dataset.calPerUnit = calsPer100g / 100;
+                row.dataset.carbsPerUnit = carbsPer100g / 100;
+                row.dataset.proteinPerUnit = proteinPer100g / 100;
+                row.dataset.fatPerUnit = fatPer100g / 100;
+
                 updateItemCalories(row);
             } catch (parseError) {
                 console.warn('Failed to parse re-estimation JSON', parseError);
@@ -557,26 +574,31 @@ function updateItemCalories(row) {
     const input = row.querySelector('.weight-input');
     const calorieCell = row.querySelector('.item-calories');
     const newWeight = parseFloat(input.value) || 0;
-    const calPerUnit = parseFloat(input.dataset.calPerUnit) || 0;
+
+    const calPerUnit = parseFloat(row.dataset.calPerUnit) || 0;
+    const carbsPerUnit = parseFloat(row.dataset.carbsPerUnit) || 0;
+    const proteinPerUnit = parseFloat(row.dataset.proteinPerUnit) || 0;
+    const fatPerUnit = parseFloat(row.dataset.fatPerUnit) || 0;
 
     const newCalories = Math.round(newWeight * calPerUnit);
+    const newCarbs = Math.round(newWeight * carbsPerUnit);
+    const newProtein = Math.round(newWeight * proteinPerUnit);
+    const newFat = Math.round(newWeight * fatPerUnit);
 
-    // Update the stored nutrition data if calories change (though usually we recalculate from name)
-    const nutrition = JSON.parse(row.dataset.nutrition || '{}');
-    nutrition.calories = newCalories;
+    // Update the stored nutrition data
+    const nutrition = {
+        calories: newCalories,
+        carbs: newCarbs,
+        protein: newProtein,
+        fat: newFat
+    };
     row.dataset.nutrition = JSON.stringify(nutrition);
     row.dataset.originalWeight = newWeight;
 
     // Refresh display based on current toggle state
     const currentConfig = NUTRITION_TYPES[currentNutritionIndex];
-    if (currentNutritionIndex === 0) {
-        calorieCell.textContent = `${newCalories} kcal`;
-    } else {
-        // Simple proportional update for macros if weight changes
-        const originalValue = nutrition[currentConfig.key] || 0;
-        // In a real app, we'd have precise density/info, but here we scale proportionally
-        calorieCell.textContent = `${Math.round(originalValue)} ${currentConfig.unit}`;
-    }
+    const displayValue = nutrition[currentConfig.key] || 0;
+    calorieCell.textContent = `${displayValue} ${currentConfig.unit}`;
 
     updateTotalCalories();
 }
