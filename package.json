@@ -2,7 +2,8 @@
   "name": "calorie-counter-decorated",
   "version": "1.0.0",
   "scripts": {
-    "dev": "wrangler pages dev . --compatibility-date=2024-04-01"
+    "dev": "wrangler pages dev . --compatibility-date=2024-04-01",
+    "build": "npm install"
   },
   "dependencies": {
     "jose": "^5.10.0"
