@@ -167,29 +167,14 @@ header {
     transition: all 0.2s ease;
 }
 
-.logout-btn:hover,
-.custom-login-wrapper:hover .custom-login-text {
+.logout-btn:hover {
     background: rgba(99, 102, 241, 0.1);
 }
 
-.custom-login-wrapper {
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-}
-
-.auth-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(2);
-    width: 100%;
-    height: 100%;
+.native-login-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
-    opacity: 0.011;
-    z-index: 10;
 }
 
 /* Fix h1 spacing after absolute positioning of top actions */
