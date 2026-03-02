@@ -22,9 +22,13 @@
         <header style="position: relative;">
             <div class="header-top-actions">
                 <button id="langToggle" class="lang-toggle-btn">ENG</button>
-                <!-- Native Google Login Button -->
-                <div id="loginWrapper" class="native-login-wrapper">
-                    <div id="authContainer"></div>
+                <!-- Custom Google Login Button with Invisible Overlay -->
+                <div id="loginWrapper" class="user-profile"
+                    style="position: relative; overflow: hidden; cursor: pointer;">
+                    <button type="button" class="logout-btn" style="pointer-events: none;">구글 로그인</button>
+                    <div id="authContainer"
+                        style="position: absolute; top: -10px; left: -10px; opacity: 0.01; transform: scale(3); transform-origin: top left; z-index: 10;">
+                    </div>
                 </div>
                 <!-- User Profile Container (Hidden by default) -->
                 <div id="userProfile" class="user-profile hidden">
