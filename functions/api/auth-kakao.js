@@ -97,7 +97,9 @@ export async function onRequestPost(context) {
 
         // 5. 브라우저 쿠키에 세션 저장 (Secure, HttpOnly)
         const expires = new Date(Date.now() + SESSION_DURATION).toUTCString();
-        const cookieStr = `session=${sessionToken}; Path=/; Expires=${expires}; HttpOnly; SameSite=Lax`;
+        const isHttps = new URL(request.url).protocol === 'https:';
+        const secureFlag = isHttps ? 'Secure;' : '';
+        const cookieStr = `session=${sessionToken}; Path=/; Expires=${expires}; HttpOnly; ${secureFlag} SameSite=Lax`;
 
         return new Response(JSON.stringify({ success: true, user: userInfo }), {
             status: 200,

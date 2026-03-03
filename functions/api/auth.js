@@ -51,8 +51,10 @@ export async function onRequestPost(context) {
 
         // 5. 브라우저 쿠키에 세션 저장 (Secure, HttpOnly)
         const expires = new Date(Date.now() + SESSION_DURATION).toUTCString();
-        // 로컬 호스트 테스트를 위해 Secure는 조건부로 넣거나 생략합니다. (실 운영에선 추가)
-        const cookieStr = `session=${sessionToken}; Path=/; Expires=${expires}; HttpOnly; SameSite=Lax`;
+        // 실제 운영 환경(HTTPS)에서는 Secure 속성이 필수입니다.
+        const isHttps = new URL(request.url).protocol === 'https:';
+        const secureFlag = isHttps ? 'Secure;' : '';
+        const cookieStr = `session=${sessionToken}; Path=/; Expires=${expires}; HttpOnly; ${secureFlag} SameSite=Lax`;
 
         return new Response(JSON.stringify({ success: true, user: userInfo }), {
             status: 200,
