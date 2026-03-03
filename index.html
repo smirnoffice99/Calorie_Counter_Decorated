@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="style.css">
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- KakaoTalk In-App Browser External Open -->
+    <script>
+        var userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.match(/kakaotalk/i)) {
+            location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href);
+        }
+    </script>
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
