@@ -17,6 +17,8 @@
     </script>
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Kakao JS SDK -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js"></script>
 </head>
 
 <body>
@@ -29,17 +31,22 @@
         <header style="position: relative;">
             <div class="header-top-actions">
                 <button id="langToggle" class="lang-toggle-btn">ENG</button>
-                <!-- Custom Google Login Button with Invisible Overlay -->
-                <div id="loginWrapper" class="user-profile"
-                    style="position: relative; overflow: hidden; cursor: pointer;">
-                    <button type="button" class="logout-btn" style="pointer-events: none;">구글 로그인</button>
-                    <div id="authContainer"
-                        style="position: absolute; top: -10px; left: -10px; opacity: 0.01; transform: scale(3); transform-origin: top left; z-index: 10;">
+                <!-- Login Buttons Wrapper -->
+                <div id="loginWrapper" style="display: flex; gap: 8px; align-items: center;">
+                    <!-- Custom Google Login Button with Invisible Overlay -->
+                    <div class="user-profile" style="position: relative; overflow: hidden; cursor: pointer; margin: 0;">
+                        <button type="button" class="logout-btn"
+                            style="pointer-events: none; margin: 0; padding-left: 0; padding-right: 0;">구글 로그인</button>
+                        <div id="authContainer"
+                            style="position: absolute; top: -10px; left: -10px; opacity: 0.01; transform: scale(3); transform-origin: top left; z-index: 10;">
+                        </div>
                     </div>
+                    <!-- Kakao Login Button -->
+                    <button type="button" id="kakaoLoginBtn" class="user-profile kakao-login-btn">카카오 로그인</button>
                 </div>
                 <!-- User Profile Container (Hidden by default) -->
                 <div id="userProfile" class="user-profile hidden">
-                    <img id="userAvatar" src="" alt="Profile" class="user-avatar" title="구글 계정 프로필">
+                    <img id="userAvatar" src="" alt="Profile" class="user-avatar" title="계정 프로필">
                     <button id="logoutBtn" class="logout-btn">로그아웃</button>
                 </div>
             </div>

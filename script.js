@@ -268,8 +268,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. 세션 확인을 먼저 진행합니다.
     const isAuthenticated = await checkSession();
 
-    // 2. 구글 인증 초기화 (세션이 없을 때 One Tap 표시 기능 포함)
-    await initGoogleAuth(isAuthenticated);
+    // 1.5. 카카오 로그인 리다이렉트 콜백 처리
+    const urlParams = new URLSearchParams(window.location.search);
+    const kakaoCode = urlParams.get('code');
+    if (kakaoCode) {
+        // Remove code from URL for clean UI
+        window.history.replaceState({}, document.title, window.location.pathname);
+        await handleKakaoCallback(kakaoCode);
+    }
+
+    // 2. 구글 인증 초기화 및 카카오 인증 초기화
+    await initAuth(isAuthenticated);
 
     // 각종 버튼 이벤트 리스너 설정
     // const analyzeBtn = document.getElementById('analyzeBtn'); // Already defined globally
@@ -304,8 +313,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ===== 구글 OAuth 인증 함수 =====
-async function initGoogleAuth(isAuthenticated) {
+// ===== OAuth 인증 초기화 함수 =====
+async function initAuth(isAuthenticated) {
     try {
         const response = await fetch('/api/auth-config');
         if (!response.ok) {
@@ -314,11 +323,13 @@ async function initGoogleAuth(isAuthenticated) {
         }
 
         const data = await response.json();
-        const clientId = data.clientId;
+        const googleClientId = data.clientId;
+        const kakaoClientId = data.kakaoClientId;
 
-        if (clientId && window.google) {
+        // 구글 로그인 초기화
+        if (googleClientId && window.google) {
             google.accounts.id.initialize({
-                client_id: clientId,
+                client_id: googleClientId,
                 callback: handleCredentialResponse,
                 auto_select: false,
                 cancel_on_tap_outside: true,
@@ -341,10 +352,64 @@ async function initGoogleAuth(isAuthenticated) {
 
             isGoogleApiLoaded = true;
         } else {
-            console.error("Google script not loaded or ClientID missing. Config:", data);
+            console.error("Google script not loaded or ClientID missing.");
+        }
+
+        // 카카오 로그인 초기화
+        if (kakaoClientId && window.Kakao) {
+            if (!Kakao.isInitialized()) {
+                Kakao.init(kakaoClientId);
+                console.log('Kakao SDK initialized');
+            }
+
+            const kakaoBtn = document.getElementById('kakaoLoginBtn');
+            if (kakaoBtn) {
+                kakaoBtn.addEventListener('click', handleKakaoLogin);
+            }
+        } else {
+            console.error("Kakao script not loaded or ClientID missing.");
+            const kakaoBtn = document.getElementById('kakaoLoginBtn');
+            if (kakaoBtn) kakaoBtn.style.display = 'none';
         }
     } catch (err) {
         console.error("Failed to load auth config:", err);
+    }
+}
+
+// 카카오 로그인 핸들러
+function handleKakaoLogin() {
+    if (!window.Kakao || !window.Kakao.isInitialized()) {
+        alert("카카오 로그인을 초기화할 수 없습니다.");
+        return;
+    }
+
+    // 카카오 JS SDK v2 에서는 Kakao.Auth.authorize 사용을 권장 (리다이렉트 방식)
+    Kakao.Auth.authorize({
+        redirectUri: window.location.origin + window.location.pathname
+    });
+}
+
+// 카카오 리다이렉트 후 코드 처리 콜백
+async function handleKakaoCallback(authCode) {
+    try {
+        const authRes = await fetch('/api/auth-kakao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: authCode, redirectUri: window.location.origin + window.location.pathname })
+        });
+
+        if (authRes.ok) {
+            const data = await authRes.json();
+            currentSession = data.user;
+            updateAuthUI(true);
+        } else {
+            console.error("Kakao authentication failed on server.");
+            updateAuthUI(false);
+            alert("카카오 로그인에 실패했습니다.");
+        }
+    } catch (err) {
+        console.error("Error during Kakao authentication:", err);
+        updateAuthUI(false);
     }
 }
 

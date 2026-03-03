@@ -128,18 +128,22 @@ header {
     align-items: flex-end;
 }
 
-/* User Profile (Login Success) Styles */
+/* User Profile (Login Success) Styles / Common Button Shape */
 .user-profile {
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     background: rgba(255, 255, 255, 0.4);
-    padding: 4px 12px;
+    height: 38px;
+    /* Fixed height for consistent alignment */
+    padding: 0 16px;
     border-radius: 50px;
     box-shadow: 0 4px 15px rgba(31, 38, 135, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(4px);
     transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 .user-avatar {
@@ -162,13 +166,49 @@ header {
     font-weight: 600;
     font-size: 0.8rem;
     cursor: pointer;
-    padding: 4px 8px;
+    /* Removed padding as container handles height and padding now */
     border-radius: 12px;
     transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
     background: rgba(99, 102, 241, 0.1);
+}
+
+.google-login-btn {
+    background-color: white;
+    color: #444;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 15px rgba(31, 38, 135, 0.05);
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 50px;
+}
+
+.google-login-btn:hover {
+    background-color: #f8f8f8;
+}
+
+.kakao-login-btn {
+    background-color: #FEE500 !important;
+    border-color: #FEE500 !important;
+    color: #000000 !important;
+    box-shadow: 0 4px 15px rgba(31, 38, 135, 0.05);
+    font-weight: 600 !important;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding-left: 16px;
+    padding-right: 16px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 50px;
+}
+
+.kakao-login-btn:hover {
+    background-color: #F6DD00 !important;
+    border-color: #F6DD00 !important;
 }
 
 .native-login-wrapper {
@@ -204,12 +244,17 @@ header .subtitle {
 /* Language Toggle Button */
 .lang-toggle-btn {
     position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    /* Match height with user-profile buttons */
     /* header 상단의 absolute 컨테이너 내부에 있으므로 기본값 */
     background: transparent;
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 0 12px;
+    border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
@@ -729,8 +774,16 @@ footer {
     }
 
     .action-buttons {
-        flex-direction: column;
+        flex-direction: row;
+        /* Changed from column to row on mobile */
         gap: 8px;
+    }
+
+    .primary-btn,
+    .secondary-btn-outline {
+        padding: 12px 16px;
+        /* slightly smaller padding for mobile row */
+        font-size: 0.9rem;
     }
 
     .card {
