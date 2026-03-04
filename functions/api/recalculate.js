@@ -16,16 +16,18 @@ export async function onRequest(context) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     try {
-        const body = await request.json();
+        const textBody = await request.text();
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
+            body: textBody
         });
 
-        const data = await response.json();
-        return new Response(JSON.stringify(data), {
-            headers: { "Content-Type": "application/json" }
+        return new Response(response.body, {
+            status: response.status,
+            headers: {
+                "Content-Type": response.headers.get("Content-Type") || "application/json"
+            }
         });
     } catch (error) {
         return new Response(JSON.stringify({ error: error.message }), {

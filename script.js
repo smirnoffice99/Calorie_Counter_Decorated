@@ -33,7 +33,7 @@ fileInput.addEventListener('change', async (e) => {
 
         const base64Data = await fileToBase64(file);
         const imageData = {
-            mimeType: file.type,
+            mimeType: 'image/webp', // We always convert to WebP in fileToBase64
             data: base64Data.split(',')[1] // clean base64 data only
         };
         uploadedImages.push(imageData);
@@ -839,12 +839,43 @@ function simulateRecognition() {
     ];
 }
 
-// Utility: File to Base64
+// Utility: File to Base64 (with Resize & WebP Compression)
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 1920; // Increased for better accuracy
+
+                if (width > height) {
+                    if (width > maxDim) {
+                        height = Math.round(height * maxDim / width);
+                        width = maxDim;
+                    }
+                } else {
+                    if (height > maxDim) {
+                        width = Math.round(width * maxDim / height);
+                        height = maxDim;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Convert to WebP with 80% quality
+                const dataUrl = canvas.toDataURL('image/webp', 0.8);
+                resolve(dataUrl);
+            };
+            img.onerror = error => reject(error);
+            img.src = event.target.result;
+        };
         reader.onerror = error => reject(error);
     });
 }
