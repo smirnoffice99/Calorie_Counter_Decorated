@@ -156,7 +156,7 @@ const i18n = {
         brandNutrition: "브랜드 영양 정보",
         totalLabel: "총 ",
         nutritionTypes: { calories: '칼로리', carbs: '탄수화물', protein: '단백질', fat: '지방' },
-        alertSimulate: "💡 안내: 현재 API 키 또는 네트워크 설정 문제로 인해 시뮬레이션(데모) 모드로 분석 결과를 표시합니다.",
+        alertSimulate: "앗! 스캐너 AI가 깜빡 한눈팔고 엉뚱한 대답을 했어요! 다시 분석해 주세요 🤪",
         confirmReset: "모든 사진과 분석 결과를 초기화할까요?",
         namePlaceholder: "음식 이름 입력",
         searchDetail: "🔍 상세 정보 검색",
@@ -181,7 +181,7 @@ const i18n = {
         brandNutrition: "Brand Nutrition Info",
         totalLabel: "Total ",
         nutritionTypes: { calories: 'Calories', carbs: 'Carbs', protein: 'Protein', fat: 'Fat' },
-        alertSimulate: "💡 Note: Displaying simulated results due to API or network issues.",
+        alertSimulate: "Oops! The Scanner AI got distracted and gave a quirky answer! 🤪 Please try analyzing again.",
         confirmReset: "Are you sure you want to reset all photos and results?",
         namePlaceholder: "Enter food name",
         searchDetail: "🔍 Search Details",
@@ -554,15 +554,16 @@ addItemBtn.addEventListener('click', () => {
 
 // Gemini API Image Analysis via Proxy
 async function analyzeImages(images) {
-    const prompt = `Identify ALL food items in these images, including branded products.
+    const prompt = `Identify ALL food items in these images.
     
-    1. "foods" array: MUST include EVERY identified item (including those with brands).
+    1. "brands" array: ONLY include items that have a visible or identifiable brand name.
+       Each object: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}
+    2. "foods" array: Include general food items that do NOT have a brand.
+       CRITICAL REQUIRMENT: If an item is listed in the "brands" array, DO NOT include it in the "foods" array (No duplicates).
        For each item, provide a BALANCED and REALISTIC weight estimate (in grams or ml). 
        Carefully observe the portion size. Do not over- or underestimate. 
        Use typical restaurant or home serving sizes as a reference.
        Provide ALL nutritional values and names in BOTH Korean and English: {nameKo, nameEn, weight, calories, carbs, protein, fat}
-    2. "brands" array: ONLY include items that have a visible brand name.
-       Each object: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}
     
     Return the results ONLY as a valid JSON object.
     `;
@@ -596,8 +597,30 @@ async function analyzeImages(images) {
     }
 
     const data = await response.json();
-    const resultText = data.candidates[0].content.parts[0].text;
-    return JSON.parse(resultText);
+
+    if (!data.candidates || data.candidates.length === 0) {
+        if (data.promptFeedback && data.promptFeedback.blockReason) {
+            throw new Error(`Image blocked by safety filter: ${data.promptFeedback.blockReason}`);
+        }
+        throw new Error('No candidates returned from API.');
+    }
+
+    const candidate = data.candidates[0];
+    if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+        throw new Error(`API returned no content. Finish reason: ${candidate.finishReason}`);
+    }
+
+    let resultText = candidate.content.parts[0].text;
+
+    // Clean up markdown formatting if Gemini returns it despite JSON mime type
+    resultText = resultText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    try {
+        return JSON.parse(resultText);
+    } catch (parseError) {
+        console.error("Failed to parse JSON from AI response:", resultText);
+        throw new Error("AI returned invalid JSON structure.");
+    }
 }
 
 // Display Results in Table
