@@ -393,6 +393,40 @@ header .subtitle {
     box-shadow: none;
 }
 
+/* Save Button (Distinct Color) */
+.save-btn {
+    flex: none;
+    /* Let it size to content width */
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    /* Distinct teal gradient */
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    /* Slightly smaller padding than primary */
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2), 0 2px 4px -1px rgba(13, 148, 136, 0.1);
+}
+
+.save-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
+    background: linear-gradient(135deg, #0f766e, #115e59);
+}
+
+.save-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 /* Gallery Deletion */
 .photo-delete-btn {
     position: absolute;

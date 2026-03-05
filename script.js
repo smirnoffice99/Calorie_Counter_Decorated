@@ -18,6 +18,7 @@ const brandSection = document.getElementById('brandSection');
 const brandContent = document.getElementById('brandContent');
 const resetBtn = document.getElementById('resetBtn');
 const updateBrandsBtn = document.getElementById('updateBrandsBtn');
+const saveRecordBtn = document.getElementById('saveRecordBtn');
 
 let uploadedImages = []; // Stores objects: { mimeType, data (base64) }
 let lastBrands = []; // Stores the last analyzed brands for bilingual toggling
@@ -254,7 +255,11 @@ const i18n = {
         deletePhoto: "사진 삭제",
         deleteItem: "삭제",
         toggleTooltip: "클릭하여 영양성분 전환",
-        resetAllTooltip: "모두 초기화"
+        resetAllTooltip: "모두 초기화",
+        saveRecordBtn: "영양소 기록 저장",
+        saveSuccess: "성공적으로 저장되었습니다!",
+        saveError: "저장에 실패했습니다.",
+        loginRequired: "로그인이 필요합니다."
     },
     en: {
         subtitle: "Instantly check macros by taking a food photo",
@@ -280,7 +285,11 @@ const i18n = {
         deletePhoto: "Delete Photo",
         deleteItem: "Delete",
         toggleTooltip: "Click to toggle nutrition",
-        resetAllTooltip: "Reset All"
+        resetAllTooltip: "Reset All",
+        saveRecordBtn: "Save Nutrient Record",
+        saveSuccess: "Successfully saved!",
+        saveError: "Failed to save.",
+        loginRequired: "Login is required."
     }
 };
 
@@ -733,6 +742,67 @@ function updateTotalCalories() {
     const config = NUTRITION_TYPES[currentNutritionIndex];
     totalCaloriesContainer.querySelector('.total-label').textContent = `${i18n[currentLang].totalLabel}${config.label}`;
     totalCaloriesValue.textContent = `${Math.round(total)} ${config.unit}`;
+}
+
+// Save Nutrient Record Logic
+if (saveRecordBtn) {
+    saveRecordBtn.addEventListener('click', async () => {
+        const rows = document.querySelectorAll('#resultBody tr');
+        if (rows.length === 0) return;
+
+        let totalCalories = 0, totalCarbs = 0, totalProtein = 0, totalFat = 0;
+
+        rows.forEach(row => {
+            const data = JSON.parse(row.dataset.nutrition || '{}');
+            totalCalories += (data.calories || 0);
+            totalCarbs += (data.carbs || 0);
+            totalProtein += (data.protein || 0);
+            totalFat += (data.fat || 0);
+        });
+
+        // Get current Date (YYYY-MM-DD) and Time (HH:MM)
+        const now = new Date();
+        // Adjust for local timezone offset to get local date string properly
+        const tzOffset = now.getTimezoneOffset() * 60000; // offset in milliseconds
+        const localISOTime = (new Date(now - tzOffset)).toISOString();
+        const currentDate = localISOTime.split('T')[0];
+        const currentTime = localISOTime.split('T')[1].substring(0, 5); // HH:MM
+
+        const payload = {
+            date: currentDate,
+            time: currentTime,
+            calories: totalCalories,
+            carbs: totalCarbs,
+            protein: totalProtein,
+            fat: totalFat
+        };
+
+        const originalText = saveRecordBtn.textContent;
+        saveRecordBtn.textContent = '...';
+        saveRecordBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/diet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.status === 401) {
+                alert(i18n[currentLang].loginRequired);
+            } else if (response.ok) {
+                alert(i18n[currentLang].saveSuccess);
+            } else {
+                alert(i18n[currentLang].saveError);
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            alert(i18n[currentLang].saveError);
+        } finally {
+            saveRecordBtn.textContent = originalText;
+            saveRecordBtn.disabled = false;
+        }
+    });
 }
 
 // Simulating recognition for fallback

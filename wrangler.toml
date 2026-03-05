@@ -1,0 +1,8 @@
+name = "calorie-counter-decorated"
+compatibility_date = "2024-04-01"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "calorie-db"
+database_id = "7ecb8cdf-5481-4a03-8881-98bfd37c4936"
