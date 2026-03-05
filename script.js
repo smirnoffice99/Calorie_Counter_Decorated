@@ -17,9 +17,38 @@ const addItemBtn = document.getElementById('addItemBtn');
 const brandSection = document.getElementById('brandSection');
 const brandContent = document.getElementById('brandContent');
 const resetBtn = document.getElementById('resetBtn');
+const updateBrandsBtn = document.getElementById('updateBrandsBtn');
 
 let uploadedImages = []; // Stores objects: { mimeType, data (base64) }
 let lastBrands = []; // Stores the last analyzed brands for bilingual toggling
+let lastFoods = []; // Stores the original foods for merging after brand updates
+
+// Helper for extracting macros robustly if AI nests them or omits them
+function getMacroValue(brand, key) {
+    if (brand[key] !== undefined && brand[key] !== null && brand[key] !== "") {
+        return parseFloat(brand[key]) || 0;
+    }
+    // Fallbacks if AI nested them inside nutritionInfoKo or nutritionInfoEn
+    const tryExtract = (info) => {
+        if (typeof info === 'object' && info !== null) {
+            if (info[key] !== undefined) return parseFloat(info[key]);
+            // Fuzzy match (e.g., 'Calories' or 'calories (kcal)')
+            for (const [k, v] of Object.entries(info)) {
+                if (k.toLowerCase().includes(key.toLowerCase())) {
+                    return parseFloat(v);
+                }
+            }
+        }
+        return null;
+    };
+
+    let val = tryExtract(brand.nutritionInfoKo);
+    if (val !== null && !isNaN(val)) return val || 0;
+    val = tryExtract(brand.nutritionInfoEn);
+    if (val !== null && !isNaN(val)) return val || 0;
+
+    return 0;
+}
 
 // Handle Photo Selection
 addPhotoBtn.addEventListener('click', () => fileInput.click());
@@ -81,7 +110,8 @@ analyzeBtn.addEventListener('click', async () => {
         const results = await analyzeImages(uploadedImages);
 
         // Merge brand items into foods if they have calorie/nutrition info
-        const allFoods = [...(results.foods || [])];
+        lastFoods = results.foods || [];
+        const allFoods = [...lastFoods];
         if (results.brands && Array.isArray(results.brands)) {
             results.brands.forEach(brand => {
                 // Only add if not already in foods (simple name match check)
@@ -93,10 +123,10 @@ analyzeBtn.addEventListener('click', async () => {
                         nameEn: brandItemNameEn,
                         name: brandItemNameKo, // Fallback
                         weight: brand.weight || "100g",
-                        calories: brand.calories || 0,
-                        carbs: brand.carbs || 0,
-                        protein: brand.protein || 0,
-                        fat: brand.fat || 0
+                        calories: getMacroValue(brand, 'calories'),
+                        carbs: getMacroValue(brand, 'carbs'),
+                        protein: getMacroValue(brand, 'protein'),
+                        fat: getMacroValue(brand, 'fat')
                     });
                 }
             });
@@ -136,8 +166,110 @@ resetBtn.addEventListener('click', () => {
         analyzeBtn.disabled = true;
         fileInput.value = '';
         lastBrands = [];
+        lastFoods = [];
     }
 });
+
+// Update Brands Button Logic
+if (updateBrandsBtn) {
+    updateBrandsBtn.addEventListener('click', async () => {
+        if (uploadedImages.length === 0) return;
+
+        updateBrandsBtn.disabled = true;
+        updateBrandsBtn.textContent = '...';
+
+        try {
+            const brands = await analyzeBrandsOnly(uploadedImages);
+            lastBrands = brands || [];
+
+            const allFoods = [...lastFoods];
+            if (lastBrands && Array.isArray(lastBrands)) {
+                lastBrands.forEach(brand => {
+                    const brandItemNameKo = `[${brand.brandNameKo || brand.brandName}] ${brand.productNameKo || brand.productName}`;
+                    const brandItemNameEn = `[${brand.brandNameEn || brand.brandName}] ${brand.productNameEn || brand.productName}`;
+                    if (!allFoods.some(f => f.nameKo === brandItemNameKo || f.name === brandItemNameKo)) {
+                        allFoods.push({
+                            nameKo: brandItemNameKo,
+                            nameEn: brandItemNameEn,
+                            name: brandItemNameKo, // Fallback
+                            weight: brand.weight || "100g",
+                            calories: getMacroValue(brand, 'calories'),
+                            carbs: getMacroValue(brand, 'carbs'),
+                            protein: getMacroValue(brand, 'protein'),
+                            fat: getMacroValue(brand, 'fat')
+                        });
+                    }
+                });
+            }
+
+            displayResults(allFoods);
+            displayBrandInfo(lastBrands);
+        } catch (error) {
+            console.error('Brand update failed:', error);
+            alert(currentLang === 'ko' ? '브랜드 정보 업데이트에 실패했습니다.' : 'Failed to update brand info.');
+        } finally {
+            updateBrandsBtn.disabled = false;
+            updateBrandsBtn.textContent = i18n[currentLang].updateBrandsBtn;
+        }
+    });
+}
+
+// Gemini API Image Analysis via Proxy for Brands Only
+async function analyzeBrandsOnly(images) {
+    const prompt = `Identify ALL branded products in these images.
+    
+    1. "brands" array: ONLY include items that have a visible or identifiable brand name.
+       Each object MUST include at the top level: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}.
+       If the nutritional info is NOT visible on the packaging, you MUST estimate "calories", "carbs", "protein", and "fat" based on your knowledge of the commercial product, and place them as NUMBERS at the top level of the object.
+    2. "foods" array: leave this empty.
+    
+    Do NOT include general foods. Analyze and extract the brand and nutrition information accurately.
+    Return the results ONLY as a valid JSON object.`;
+
+    const contents = [{
+        parts: [
+            { text: prompt },
+            ...images.map(img => ({
+                inline_data: {
+                    mime_type: img.mimeType,
+                    data: img.data
+                }
+            }))
+        ]
+    }];
+
+    const response = await fetch(API_ENDPOINTS.ANALYZE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents,
+            generationConfig: {
+                response_mime_type: "application/json"
+            }
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Server error occurred during analysis');
+    }
+
+    const data = await response.json();
+    const candidate = data.candidates?.[0];
+    if (!candidate?.content?.parts?.[0]) {
+        throw new Error('No content returned from API');
+    }
+
+    let resultText = candidate.content.parts[0].text;
+    resultText = resultText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+
+    try {
+        const parsed = JSON.parse(resultText);
+        return parsed.brands || [];
+    } catch (parseError) {
+        console.error("Failed to parse JSON from AI response:", resultText);
+        throw new Error("AI returned invalid JSON structure.");
+    }
+}
 
 let currentLang = 'ko';
 
@@ -154,6 +286,7 @@ const i18n = {
         estWeight: "추정 무게",
         addItemBtn: "+ 직접 항목 추가",
         brandNutrition: "브랜드 영양 정보",
+        updateBrandsBtn: "업데이트",
         totalLabel: "총 ",
         nutritionTypes: { calories: '칼로리', carbs: '탄수화물', protein: '단백질', fat: '지방' },
         alertSimulate: "앗! 스캐너 AI가 깜빡 한눈팔고 엉뚱한 대답을 했어요! 다시 분석해 주세요 🤪",
@@ -179,6 +312,7 @@ const i18n = {
         estWeight: "Est. Weight",
         addItemBtn: "+ Add Item Manually",
         brandNutrition: "Brand Nutrition Info",
+        updateBrandsBtn: "Update",
         totalLabel: "Total ",
         nutritionTypes: { calories: 'Calories', carbs: 'Carbs', protein: 'Protein', fat: 'Fat' },
         alertSimulate: "Oops! The Scanner AI got distracted and gave a quirky answer! 🤪 Please try analyzing again.",
@@ -557,7 +691,8 @@ async function analyzeImages(images) {
     const prompt = `Identify ALL food items in these images.
     
     1. "brands" array: ONLY include items that have a visible or identifiable brand name.
-       Each object: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}
+       Each object MUST include at the top level: {brandNameKo, brandNameEn, productNameKo, productNameEn, nutritionInfoKo, nutritionInfoEn, calories, carbs, protein, fat, weight}.
+       If the nutritional info is NOT visible on the packaging, you MUST estimate "calories", "carbs", "protein", and "fat" based on your knowledge of the commercial product, and place them as NUMBERS at the top level of the object.
     2. "foods" array: Include general food items that do NOT have a brand.
        CRITICAL REQUIRMENT: If an item is listed in the "brands" array, DO NOT include it in the "foods" array (No duplicates).
        For each item, provide a BALANCED and REALISTIC weight estimate (in grams or ml). 

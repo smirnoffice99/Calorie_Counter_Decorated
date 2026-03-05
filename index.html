@@ -108,7 +108,12 @@
                 <!-- Brand Info Section -->
                 <div id="brandSection" class="brand-section hidden">
                     <div class="card brand-card">
-                        <h3 data-i18n="brandNutrition">브랜드 영양 정보</h3>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 data-i18n="brandNutrition" style="margin: 0;">브랜드 영양 정보</h3>
+                            <button id="updateBrandsBtn" class="update-brands-btn"
+                                data-i18n="updateBrandsBtn">업데이트</button>
+                        </div>
                         <div id="brandContent" class="brand-content">
                             <!-- Brand details will be injected here -->
                         </div>
