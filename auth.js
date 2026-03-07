@@ -193,6 +193,7 @@ function updateAuthUI(isLoggedIn) {
     const loginWrapper = document.getElementById('loginWrapper');
     const userProfile = document.getElementById('userProfile');
     const userAvatar = document.getElementById('userAvatar');
+    const saveRecordBtn = document.getElementById('saveRecordBtn');
 
     if (isLoggedIn && currentSession) {
         // 로그인 상태 UI
@@ -205,10 +206,12 @@ function updateAuthUI(isLoggedIn) {
         } else if (userAvatar) {
             userAvatar.style.display = 'none';
         }
+        if (saveRecordBtn) saveRecordBtn.classList.remove('hidden');
     } else {
         // 비회원 상태 UI
         if (loginWrapper) loginWrapper.style.display = 'flex';
         if (userProfile) userProfile.classList.add('hidden');
         if (userAvatar) userAvatar.src = '';
+        if (saveRecordBtn) saveRecordBtn.classList.add('hidden');
     }
 }
