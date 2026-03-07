@@ -393,28 +393,24 @@ header .subtitle {
     box-shadow: none;
 }
 
-/* Save Button (Distinct Color) */
+/* Save Button (Target: 30s Women - Soft Tiffany Green / Mint) */
 .save-btn {
     flex: none;
-    /* Let it size to content width */
-    background: linear-gradient(135deg, #0d9488, #0f766e);
-    /* Distinct teal gradient */
+    background: linear-gradient(135deg, #14b8a6, #0f766e);
     color: white;
     border: none;
     padding: 10px 18px;
-    /* Slightly smaller padding than primary */
     border-radius: 12px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2), 0 2px 4px -1px rgba(13, 148, 136, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(20, 184, 166, 0.3), 0 2px 4px -1px rgba(20, 184, 166, 0.2);
 }
 
 .save-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(13, 148, 136, 0.3);
-    background: linear-gradient(135deg, #0f766e, #115e59);
+    box-shadow: 0 10px 15px -3px rgba(20, 184, 166, 0.4);
+    background: linear-gradient(135deg, #0d9488, #0f766e);
 }
 
 .save-btn:active:not(:disabled) {
@@ -476,11 +472,10 @@ header .subtitle {
     padding: 24px;
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: box-shadow 0.3s ease;
 }
 
 .card:hover {
-    transform: translateY(-2px);
     box-shadow: 0 25px 30px -5px rgba(79, 70, 229, 0.15), 0 15px 15px -5px rgba(79, 70, 229, 0.06);
 }
 

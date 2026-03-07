@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS diet_logs (
     user_id TEXT NOT NULL,
     date TEXT NOT NULL,
     time TEXT,
+    items TEXT,
     calories REAL NOT NULL,
     carbs REAL NOT NULL,
     protein REAL NOT NULL,

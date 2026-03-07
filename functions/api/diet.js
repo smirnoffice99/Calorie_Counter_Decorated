@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
     // 2. 요청 본문 데이터 추출
     try {
         const bodyText = await request.text();
-        const { date, time, calories, carbs, protein, fat } = JSON.parse(bodyText);
+        const { date, time, items, calories, carbs, protein, fat } = JSON.parse(bodyText);
 
         // 유효성 검사
         if (!date || calories === undefined) {
@@ -54,9 +54,9 @@ export async function onRequestPost(context) {
 
         // 3. D1 DB에 저장
         const stmt = env.DB.prepare(
-            `INSERT INTO diet_logs (user_id, date, time, calories, carbs, protein, fat) 
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(userEmail, date, time, calories, carbs, protein, fat);
+            `INSERT INTO diet_logs (user_id, date, time, items, calories, carbs, protein, fat) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(userEmail, date, time, items || "", calories, carbs, protein, fat);
 
         await stmt.run();
 

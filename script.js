@@ -759,6 +759,7 @@ if (saveRecordBtn) {
         if (rows.length === 0) return;
 
         let totalCalories = 0, totalCarbs = 0, totalProtein = 0, totalFat = 0;
+        let itemNames = [];
 
         rows.forEach(row => {
             const data = JSON.parse(row.dataset.nutrition || '{}');
@@ -766,7 +767,15 @@ if (saveRecordBtn) {
             totalCarbs += (data.carbs || 0);
             totalProtein += (data.protein || 0);
             totalFat += (data.fat || 0);
+
+            // Get the name from the input field
+            const nameInput = row.querySelector('.name-input');
+            if (nameInput && nameInput.value) {
+                itemNames.push(nameInput.value.trim());
+            }
         });
+
+        const itemsString = itemNames.length > 0 ? itemNames.join(', ') : '정보 없음';
 
         // Get current Date (YYYY-MM-DD) and Time (HH:MM)
         const now = new Date();
@@ -779,6 +788,7 @@ if (saveRecordBtn) {
         const payload = {
             date: currentDate,
             time: currentTime,
+            items: itemsString,
             calories: totalCalories,
             carbs: totalCarbs,
             protein: totalProtein,

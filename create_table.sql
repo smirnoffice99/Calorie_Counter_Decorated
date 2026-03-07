@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS nutrient_records (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, items TEXT NOT NULL, total_calories REAL, total_carbs INTEGER, total_protein INTEGER, total_fat INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
