@@ -61,6 +61,7 @@
                     <!-- Placeholder for uploaded/captured images -->
                     <div class="gallery-item-add" id="addPhotoBtn">
                         <input type="file" id="fileInput" accept="image/*" hidden multiple>
+                        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
                         <div class="add-icon">+</div>
                         <span data-i18n="importPhoto">사진 가져오기</span>
                         <span class="hint" data-i18n="importHint">(카메라/갤러리)</span>
@@ -124,6 +125,22 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Photo Source Modal -->
+            <div id="photoSourceModal" class="modal hidden">
+                <div class="modal-content">
+                    <h3 data-i18n="selectPhotoSource" style="margin-bottom: 20px; text-align: center;">사진 가져오기 방법 선택
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button id="btnCamera" class="primary-btn" data-i18n="takePhoto">카메라로 촬영</button>
+                        <button id="btnGallery" class="secondary-btn-outline" data-i18n="chooseFromGallery">갤러리에서
+                            선택</button>
+                        <button id="btnCloseModal" class="text-btn" data-i18n="closeBtn"
+                            style="margin-top: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 10px;">닫기</button>
+                    </div>
+                </div>
+            </div>
+
         </main>
 
         <footer>

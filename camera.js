@@ -3,9 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // We already have 'addPhotoBtn' and 'fileInput' defined in script.js top-level,
     // so we can access them here directly. 
 
-    addPhotoBtn.addEventListener('click', () => fileInput.click());
+    const cameraInput = document.getElementById('cameraInput');
+    const photoSourceModal = document.getElementById('photoSourceModal');
+    const btnCamera = document.getElementById('btnCamera');
+    const btnGallery = document.getElementById('btnGallery');
+    const btnCloseModal = document.getElementById('btnCloseModal');
 
-    fileInput.addEventListener('change', async (e) => {
+    addPhotoBtn.addEventListener('click', () => {
+        photoSourceModal.classList.remove('hidden');
+    });
+
+    btnCloseModal.addEventListener('click', () => {
+        photoSourceModal.classList.add('hidden');
+    });
+
+    photoSourceModal.addEventListener('click', (e) => {
+        if (e.target === photoSourceModal) {
+            photoSourceModal.classList.add('hidden');
+        }
+    });
+
+    btnCamera.addEventListener('click', () => {
+        cameraInput.click();
+        photoSourceModal.classList.add('hidden');
+    });
+
+    btnGallery.addEventListener('click', () => {
+        fileInput.click();
+        photoSourceModal.classList.add('hidden');
+    });
+
+    const handleFileChange = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
@@ -45,8 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (uploadedImages.length > 0) {
             analyzeBtn.disabled = false;
         }
-        fileInput.value = '';
-    });
+        e.target.value = '';
+    };
+
+    fileInput.addEventListener('change', handleFileChange);
+    cameraInput.addEventListener('change', handleFileChange);
 });
 
 // Utility: File to Base64 (with Resize & WebP Compression)
